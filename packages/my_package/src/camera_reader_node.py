@@ -23,13 +23,32 @@ class CameraReaderNode(DTROS):
         cv2.namedWindow(self._window, cv2.WINDOW_AUTOSIZE)
         # construct subscriber
         self.sub = rospy.Subscriber(self._camera_topic, CompressedImage, self.callback)
+        self.image = None
 
     def callback(self, msg):
         # convert JPEG bytes to CV image
         image = self._bridge.compressed_imgmsg_to_cv2(msg)
         # display frame
+        shape = image.shape
         cv2.imshow(self._window, image)
         cv2.waitKey(1)
+        
+        # convert RGB to Gray
+        # https://www.geeksforgeeks.org/python-grayscaling-of-images-using-opencv/
+        # https://learnopencv.com/annotating-images-using-opencv/
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        text = "Duck {name} says, 'Cheese! Capturing {size1}x{size2} - quack-tastic!'".format(name=self._vehicle_name, size1=shape[0], size2=shape[1])
+        org = (50,350)
+        cv2.putText(gray_image, text, org, fontFace = cv2.FONT_HERSHEY_COMPLEX, fontScale = 0.5, color = (250,225,100))
+        cv2.imshow('Gray', gray_image)
+        cv2.waitKey(0)
+        self.image = gray_image
+    
+    def start(self):
+        # convert JPEG bytes to CV image
+        pass
+        
+
 
 if __name__ == '__main__':
     # create the node
