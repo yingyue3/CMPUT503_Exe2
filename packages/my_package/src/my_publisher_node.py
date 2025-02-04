@@ -27,6 +27,7 @@ class MyPublisherNode(DTROS):
 
 if __name__ == '__main__':
     # create the node
+    rospy.init_node("image_to_grayscale", anonymous=True)
     node = MyPublisherNode(node_name='my_publisher_node')
     # run node
     node.run()

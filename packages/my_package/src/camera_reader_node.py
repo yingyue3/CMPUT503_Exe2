@@ -26,7 +26,7 @@ class CameraReaderNode(DTROS):
         self.image = None
         self.raw_image = None
         self._custom_topic = f"/{self._vehicle_name}/custom_node/image/compressed"
-        self.pub = rospy.Publisher(self._custom_topic, CompressedImage) #queue_size=10)
+        self.pub = rospy.Publisher(self._custom_topic, Image) # queue_size=10
 
     def callback(self, msg):
         # convert JPEG bytes to CV image
@@ -43,19 +43,20 @@ class CameraReaderNode(DTROS):
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         text = "Duck {name} says, 'Cheese! Capturing {size1}x{size2} - quack-tastic!'".format(name=self._vehicle_name, size1=shape[0], size2=shape[1])
         org = (50,350)
-        cv2.putText(gray_image, text, org, fontFace = cv2.FONT_HERSHEY_COMPLEX, fontScale = 0.5, color = (250,225,100))
+        new_image = cv2.putText(gray_image, text, org, fontFace = cv2.FONT_HERSHEY_COMPLEX, fontScale = 0.5, color = (250,225,100))
+        self.image = new_image
         cv2.imshow('Gray', gray_image)
         cv2.waitKey(0)
-        self.image = gray_image
     
     def start(self):
         # https://stackoverflow.com/questions/55377442/how-to-subscribe-and-publish-images-in-ros
         rate = rospy.Rate(1)
         rospy.loginfo("compressed image")
-        while not rospy.is_shutdown():
-            rospy.loginfo('publishing image')
+        while not rospy.is_shutdown():       
             if self.image is not None:
-                self.pub.publish(self._bridge.cv2_to_compressed_imgmsg(self.image, "passthrough"))
+                rospy.loginfo('publishing image')
+                gray_image = self._bridge.cv2_to_imgmsg(self.image, encoding="mono8")
+                self.pub.publish(gray_image)
             #self.pub.publish(self.raw_image)
             rate.sleep()
         
