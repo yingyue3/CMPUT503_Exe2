@@ -3,7 +3,7 @@
 import os
 import rospy
 from duckietown.dtros import DTROS, NodeType
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Image
 
 import cv2
 from cv_bridge import CvBridge
@@ -24,10 +24,14 @@ class CameraReaderNode(DTROS):
         # construct subscriber
         self.sub = rospy.Subscriber(self._camera_topic, CompressedImage, self.callback)
         self.image = None
+        self.raw_image = None
+        self._custom_topic = f"/{self._vehicle_name}/custom_node/image/compressed"
+        self.pub = rospy.Publisher(self._custom_topic, CompressedImage) #queue_size=10)
 
     def callback(self, msg):
         # convert JPEG bytes to CV image
         image = self._bridge.compressed_imgmsg_to_cv2(msg)
+        self.raw_image = msg
         # display frame
         shape = image.shape
         cv2.imshow(self._window, image)
@@ -45,13 +49,21 @@ class CameraReaderNode(DTROS):
         self.image = gray_image
     
     def start(self):
-        # convert JPEG bytes to CV image
-        pass
+        # https://stackoverflow.com/questions/55377442/how-to-subscribe-and-publish-images-in-ros
+        rate = rospy.Rate(1)
+        rospy.loginfo("compressed image")
+        while not rospy.is_shutdown():
+            rospy.loginfo('publishing image')
+            if self.image is not None:
+                self.pub.publish(self._bridge.cv2_to_compressed_imgmsg(self.image, "passthrough"))
+            #self.pub.publish(self.raw_image)
+            rate.sleep()
         
 
 
 if __name__ == '__main__':
     # create the node
     node = CameraReaderNode(node_name='camera_reader_node')
+    node.start()
     # keep spinning
     rospy.spin()
