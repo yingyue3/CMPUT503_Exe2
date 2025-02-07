@@ -28,7 +28,7 @@ class MoveNode(DTROS):
         self._radius = rospy.get_param(f'/{self._vehicle_name}/kinematics_node/radius', 100)
         self.DISTANCE_PER_TICK = np.pi*2*self._radius/135
         self.start_dist = 0
-        self.wheelbase = 0.07
+        self.wheelbase = 0.16
 
         # LEDs
 
@@ -51,28 +51,32 @@ class MoveNode(DTROS):
         # store data value
         self._ticks_right = data.data
         
-    def compute_distance_traveled(self):
-        left_distance = self._ticks_left* self.DISTANCE_PER_TICK
-        right_distance = self._ticks_right* self.DISTANCE_PER_TICK
-        return left_distance 
+    def compute_distance_traveled(self, ticks):
+        # left_distance = self._ticks_left* self.DISTANCE_PER_TICK
+        # right_distance = self._ticks_right* self.DISTANCE_PER_TICK
+        # dist = []
+        # dist.append(left_distance)
+        # dist.append(right_distance)
+        distance = ticks* self.DISTANCE_PER_TICK
+        return distance
     
     def drive_straight(self, speed=0.2, direction=1):
         msg = WheelsCmdStamped()
-        msg.vel_left = speed * direction
-        msg.vel_right = speed * direction
+        msg.vel_left = speed * direction 
+        msg.vel_right = speed * direction * 0.9
 
         # self._ticks_left = 0  # Reset encoders before movement
         # self._ticks_right = 0
-        self.start_dist = self.compute_distance_traveled()
+        self.start_dist = self.compute_distance_traveled(self._ticks_left)
 
         
 
-        while np.abs(self.start_dist - self.compute_distance_traveled()) < self.TARGET_DISTANCE and not rospy.is_shutdown():
+        while np.abs(self.start_dist - self.compute_distance_traveled(self._ticks_left)) < self.TARGET_DISTANCE and not rospy.is_shutdown():
             self.pub.publish(msg)
-            rospy.sleep(0.1)  
+            # rospy.sleep(0.1)  
 
 
-        rospy.loginfo(self.compute_distance_traveled())
+        rospy.loginfo(self.compute_distance_traveled(self._ticks_left))
         # Stop after reaching the target distance
         msg.vel_left = 0
         msg.vel_right = 0
@@ -80,21 +84,21 @@ class MoveNode(DTROS):
     
     def rotate_clockwise(self, speed=0.2):
         msg = WheelsCmdStamped()
-        msg.vel_left = speed   
-        msg.vel_right = -speed 
+        msg.vel_left = speed 
+        # msg.vel_right = -speed *0.8
+        msg.vel_right = 0
 
         # self._ticks_left = 0  
         # self._ticks_right = 0
 
         # Calculate target rotation distance (90 degrees)
          
-        self.start_dist = self.compute_distance_traveled()
+        self.start_dist = self.compute_distance_traveled(self._ticks_left)
 
 
-        while np.abs(self.start_dist - self.compute_distance_traveled()) < self.ROTATION_TARGET and not rospy.is_shutdown():
-            rospy.loginfo(self.start_dist - self.compute_distance_traveled())
+        while np.abs(self.start_dist - self.compute_distance_traveled(self._ticks_left)) < self.ROTATION_TARGET and not rospy.is_shutdown():
             self.pub.publish(msg)
-            rospy.sleep(0.1)
+            # rospy.sleep(0.1)
 
 
         # Stop the robot after rotation
@@ -105,21 +109,23 @@ class MoveNode(DTROS):
 
     def rotate_anticlockwise(self, speed=0.2):
         msg = WheelsCmdStamped()
-        msg.vel_left = -speed   
-        msg.vel_right = speed 
+        # msg.vel_left = -speed   
+        # msg.vel_left = 0
+        # msg.vel_right = speed * 0.9
+        msg.vel_right = 0
+        msg.vel_left = -speed 
 
         # self._ticks_left = 0  
         # self._ticks_right = 0
 
         # Calculate target rotation distance (90 degrees)
          
-        self.start_dist = self.compute_distance_traveled()
+        self.start_dist = self.compute_distance_traveled(self._ticks_left)
 
 
-        while np.abs(self.start_dist - self.compute_distance_traveled()) < self.ROTATION_TARGET and not rospy.is_shutdown():
-            rospy.loginfo(self.start_dist - self.compute_distance_traveled())
+        while np.abs(self.start_dist - self.compute_distance_traveled(self._ticks_left)) < self.ROTATION_TARGET and not rospy.is_shutdown():
             self.pub.publish(msg)
-            rospy.sleep(0.1)
+            # rospy.sleep(0.1)
 
 
         # Stop the robot after rotation
@@ -136,21 +142,23 @@ class MoveNode(DTROS):
     
     def run(self): 
 
-        # self.drive_straight(speed=0.5, direction=1)
+        rospy.Rate(10)
 
-        # rospy.sleep(1)  
+        self.drive_straight(speed=0.7, direction=1)
 
-        # self.drive_straight(speed=0.5, direction=-1)
+        rospy.sleep(1)  
+
+        self.drive_straight(speed=0.7, direction=-1)
 
         
 
-        # rospy.sleep(1)
+        rospy.sleep(1)
 
-        self.rotate_clockwise(speed=1)
+        self.rotate_clockwise(speed=0.7)
 
         rospy.sleep(1)
 
-        self.rotate_anticlockwise(speed=1)
+        self.rotate_anticlockwise(speed=0.7)
 
     def on_shutdown(self):
         stop = WheelsCmdStamped(vel_left=0, vel_right=0)
