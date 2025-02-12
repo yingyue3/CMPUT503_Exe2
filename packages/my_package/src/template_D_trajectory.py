@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
 # import required libraries
+import os
+import rospy
+from duckietown.dtros import DTROS, NodeType
+from duckietown_msgs.msg import WheelEncoderStamped
+from duckietown_msgs.msg import WheelsCmdStamped
+import numpy as np
 
 class TrajectoryNode(DTROS):
     def __init__(self, node_name):
@@ -19,7 +25,7 @@ class TrajectoryNode(DTROS):
         self._radius = rospy.get_param(f'/{self._vehicle_name}/kinematics_node/radius', 100)
         self.DISTANCE_PER_TICK = np.pi*2*self._radius/135
         self.start_dist = 0
-        self.wheelbase = 0.16
+        self.wheelbase = 0.205
 
         # subscribe to the left and right wheel encoder topics
         # publish to the wheels command topic
@@ -29,6 +35,7 @@ class TrajectoryNode(DTROS):
         # define other variables
         # initialize ros bag file
         self.ROTATION_TARGET = np.pi*self.wheelbase / 4
+        self.ARC_TARGET = np.pi*((self.wheelbase/2)+0.54) / 4
         pass
 
     def callback_left(self, data):
@@ -101,17 +108,48 @@ class TrajectoryNode(DTROS):
         self.pub.publish(msg)
         rospy.loginfo("Rotation complete (90 degrees clockwise).")
     
-    def drive_arc(self, **kwargs):
+    def drive_arc(self, speed=0.2):
         # add your code here
+        msg = WheelsCmdStamped()
+        msg.vel_left = speed 
+        # msg.vel_right = -speed *0.8
+        msg.vel_right = speed * 0.38
+
+        # self._ticks_left = 0  
+        # self._ticks_right = 0
+
+        # Calculate target rotation distance (90 degrees)
+         
+        self.start_dist = self.compute_distance_traveled(self._ticks_left)
+
+
+        while np.abs(self.start_dist - self.compute_distance_traveled(self._ticks_left)) < self.ARC_TARGET and not rospy.is_shutdown():
+            self.pub.publish(msg)
+            # rospy.sleep(0.1)
+
+
+        # Stop the robot after rotation
+        msg.vel_left = 0
+        msg.vel_right = 0
+        self.pub.publish(msg)
+        rospy.loginfo("Rotation complete (90 degrees clockwise).")
         pass
     
     def draw_d_shape(self, **kwargs):
         # add your code here
-        self.drive_straight(speed=0.7, direction=1, 1.25)
+        self.drive_straight(speed=0.8, direction=1, distance=1.1)
         rospy.sleep(1) 
-        self.rotate_clockwise(speed=0.7)
+        self.rotate_clockwise(speed=0.8)
         rospy.sleep(1) 
-        self.drive_straight(speed=0.7, direction=1, 1.25)
+        self.drive_straight(speed=0.8, direction=1, distance=0.65)
+        rospy.sleep(1) 
+        self.drive_arc(speed=0.8)
+        rospy.sleep(1) 
+        self.drive_straight(speed=0.8, direction=1, distance=0.5)
+        rospy.sleep(1) 
+        self.drive_arc(speed=0.8)
+        rospy.sleep(1) 
+        self.drive_straight(speed=0.8, direction=1, distance=0.65)
         rospy.sleep(1) 
 
         pass
@@ -125,7 +163,7 @@ class TrajectoryNode(DTROS):
     def run(self):
         rospy.sleep(2)  # wait for the node to initialize
         rospy.Rate(10)
-        draw_d_shape()
+        self.draw_d_shape()
 
         # add your code here
         pass
@@ -133,6 +171,6 @@ class TrajectoryNode(DTROS):
 if __name__ == '__main__':
     # define class TrajectoryNode
     # call the function run of class TrajectoryNode
-    node = MoveNode(node_name='move_node_D')
+    node = TrajectoryNode(node_name='move_node_D')
     node.run()
     rospy.spin()
