@@ -1,6 +1,6 @@
 import rosbag
 import os
-bag = rosbag.Bag('./packages/my_package/move.bag')
+bag = rosbag.Bag('./packages/my_package/move1.bag')
 _vehicle_name = os.environ['VEHICLE_NAME']   
 for topic, msg, t in bag.read_messages(topics=[f"/{_vehicle_name}/wheels_driver_node/wheels_cmd"]):
     print(msg)

@@ -6,6 +6,8 @@ import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import WheelEncoderStamped
 from duckietown_msgs.msg import WheelsCmdStamped
+from duckietown_msgs.msg import LEDPattern 
+from std_msgs.msg import Header, ColorRGBA 
 import numpy as np
 
 class TrajectoryNode(DTROS):
@@ -17,11 +19,14 @@ class TrajectoryNode(DTROS):
         self._left_encoder_topic = f"/{self._vehicle_name}/left_wheel_encoder_node/tick"
         self._right_encoder_topic = f"/{self._vehicle_name}/right_wheel_encoder_node/tick"
         self.wheels_topic = f"/{self._vehicle_name}/wheels_driver_node/wheels_cmd"
+        self.led_topic = f"/{self._vehicle_name}/led_emitter_node/led_pattern"
+        
         self._ticks_left = 0
         self._ticks_right = 0
         self.sub_left = rospy.Subscriber(self._left_encoder_topic, WheelEncoderStamped, self.callback_left)
         self.sub_right = rospy.Subscriber(self._right_encoder_topic, WheelEncoderStamped, self.callback_right)
         self.pub = rospy.Publisher(self.wheels_topic, WheelsCmdStamped, queue_size=1)
+        self.led_pub = rospy.Publisher(self.led_topic, LEDPattern, queue_size=1)  # LED publisher
         self._radius = rospy.get_param(f'/{self._vehicle_name}/kinematics_node/radius', 100)
         self.DISTANCE_PER_TICK = np.pi*2*self._radius/135
         self.start_dist = 0
@@ -137,30 +142,54 @@ class TrajectoryNode(DTROS):
     
     def draw_d_shape(self, **kwargs):
         # add your code here
+        self.use_leds("blue")
         self.drive_straight(speed=0.8, direction=1, distance=1.1)
         rospy.sleep(1) 
         self.rotate_clockwise(speed=0.8)
         rospy.sleep(1) 
         self.drive_straight(speed=0.8, direction=1, distance=0.65)
         rospy.sleep(1) 
+        self.use_leds("green")
         self.drive_arc(speed=0.8)
         rospy.sleep(1) 
+        self.use_leds("blue")
         self.drive_straight(speed=0.8, direction=1, distance=0.5)
         rospy.sleep(1) 
+        self.use_leds("green")
         self.drive_arc(speed=0.8)
         rospy.sleep(1) 
+        self.use_leds("blue")
         self.drive_straight(speed=0.8, direction=1, distance=0.65)
         rospy.sleep(1) 
+        self.use_leds("red")
 
         pass
 
-    def use_leds(self, **kwargs):
+    def use_leds(self, color):
         # add your code here
-        pass
+        x = ()
+        if color == "blue":
+            x = (0.0, 0.0, 1.0, 1.0)
+        elif color == "red":
+            x = (1.0, 0.0, 0.0, 1.0)
+        elif color == "green":
+            x = (0.0, 1.0, 0.0, 1.0)
+
+        msg = LEDPattern()
+        msg.header = Header()
+        msg.header.stamp = rospy.Time.now()
+        color_msg = ColorRGBA()
+        color_msg.r, color_msg.g, color_msg.b, color_msg.a = x
+
+        # Set LED colors
+        msg.rgb_vals = [color_msg] * 5
+        self.led_pub.publish(msg) 
+
 
     # define other functions if needed
 
     def run(self):
+        self.use_leds("red")
         rospy.sleep(2)  # wait for the node to initialize
         rospy.Rate(10)
         self.draw_d_shape()

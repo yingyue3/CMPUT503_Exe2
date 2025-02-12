@@ -144,15 +144,15 @@ class MoveNode(DTROS):
 
         rospy.Rate(10)
 
-        self.drive_straight(speed=0.7, direction=1)
+        # self.drive_straight(speed=0.7, direction=1)
 
-        rospy.sleep(1)  
+        # rospy.sleep(1)  
 
-        self.drive_straight(speed=0.7, direction=-1)
+        # self.drive_straight(speed=0.7, direction=-1)
 
         
 
-        rospy.sleep(1)
+        # rospy.sleep(1)
 
         self.rotate_clockwise(speed=0.7)
 
