@@ -66,10 +66,10 @@ class TrajectoryNode(DTROS):
         distance = ticks* self.DISTANCE_PER_TICK
         return distance
     
-    def drive_straight(self, speed=0.2, direction=1, distance=1.25):
+    def drive_straight(self, speed=0.2, direction=1, distance=1.25, calibrate = 1):
         msg = WheelsCmdStamped()
         msg.vel_left = speed * direction 
-        msg.vel_right = speed * direction * 0.9
+        msg.vel_right = speed * direction * calibrate
 
         # self._ticks_left = 0  # Reset encoders before movement
         # self._ticks_right = 0
@@ -83,6 +83,7 @@ class TrajectoryNode(DTROS):
 
 
         rospy.loginfo(self.compute_distance_traveled(self._ticks_left))
+        rospy.loginfo("Straight line end")
         # Stop after reaching the target distance
         msg.vel_left = 0
         msg.vel_right = 0
@@ -113,10 +114,10 @@ class TrajectoryNode(DTROS):
         self.pub.publish(msg)
         rospy.loginfo("Rotation complete (90 degrees clockwise).")
     
-    def drive_arc(self, speed=0.2):
+    def drive_arc(self, speed=0.2, calibrate = 1):
         # add your code here
         msg = WheelsCmdStamped()
-        msg.vel_left = speed 
+        msg.vel_left = speed * calibrate
         # msg.vel_right = -speed *0.8
         msg.vel_right = speed * 0.38
 
@@ -137,31 +138,36 @@ class TrajectoryNode(DTROS):
         msg.vel_left = 0
         msg.vel_right = 0
         self.pub.publish(msg)
-        rospy.loginfo("Rotation complete (90 degrees clockwise).")
+        rospy.loginfo("Rotation arc complete (90 degrees clockwise).")
         pass
     
     def draw_d_shape(self, **kwargs):
         # add your code here
         self.use_leds("blue")
-        self.drive_straight(speed=0.8, direction=1, distance=1.1)
+        rospy.sleep(5)
+        self.use_leds("green")
+        self.drive_straight(speed=0.8, direction=1, distance=0.9, calibrate = 0.95)
         rospy.sleep(1) 
         self.rotate_clockwise(speed=0.8)
         rospy.sleep(1) 
-        self.drive_straight(speed=0.8, direction=1, distance=0.65)
+        self.drive_straight(speed=0.8, direction=1, distance=0.65, calibrate = 0.95)
         rospy.sleep(1) 
-        self.use_leds("green")
-        self.drive_arc(speed=0.8)
+        # self.use_leds("green")
+        self.drive_arc(speed=0.8, calibrate = 1.1)
         rospy.sleep(1) 
+        # self.use_leds("blue")
+        self.drive_straight(speed=0.8, direction=1, distance=0.5, calibrate = 0.95)
+        rospy.sleep(1) 
+        # self.use_leds("green")
+        self.drive_arc(speed=0.8, calibrate = 1.2)
+        rospy.sleep(1) 
+        # self.use_leds("blue")
+        self.drive_straight(speed=0.8, direction=1, distance=0.65, calibrate = 0.98)
+        rospy.sleep(1) 
+        self.rotate_clockwise(speed=0.8)
+        rospy.sleep(1)
         self.use_leds("blue")
-        self.drive_straight(speed=0.8, direction=1, distance=0.5)
-        rospy.sleep(1) 
-        self.use_leds("green")
-        self.drive_arc(speed=0.8)
-        rospy.sleep(1) 
-        self.use_leds("blue")
-        self.drive_straight(speed=0.8, direction=1, distance=0.65)
-        rospy.sleep(1) 
-        self.use_leds("red")
+        rospy.sleep(5)
 
         pass
 
